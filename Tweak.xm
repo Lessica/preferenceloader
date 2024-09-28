@@ -22,12 +22,14 @@ static NSString **pPSTableCellUseEtchedAppearanceKey = NULL;
 static BOOL _Firmware_lt_60 = NO;
 /* }}} */
 
-%hook PrefsListController
 static NSMutableArray *_loadedSpecifiers = nil;
 static NSInteger _extraPrefsGroupSectionID = 0;
 
 /* {{{ iPad Hooks */
 %group iPad
+
+%hook PrefsListController
+
 - (NSString *)tableView:(UITableView *)view titleForHeaderInSection:(NSInteger)section {
 	if([_loadedSpecifiers count] == 0) return %orig;
 	if(section == _extraPrefsGroupSectionID) return _Firmware_lt_60 ? @"Extensions" : NULL;
@@ -39,6 +41,9 @@ static NSInteger _extraPrefsGroupSectionID = 0;
 	if(section == _extraPrefsGroupSectionID) return _Firmware_lt_60 ? 22.0f : 10.f;
 	return %orig;
 }
+
+%end
+
 %end
 /* }}} */
 
@@ -47,6 +52,8 @@ static NSInteger PSSpecifierSort(PSSpecifier *a1, PSSpecifier *a2, void *context
 	NSString *string2 = [a2 name];
 	return [string1 localizedCaseInsensitiveCompare:string2];
 }
+
+%hook PrefsListController
 
 - (id)specifiers {
 	bool first = (MSHookIvar<id>(self, "_specifiers") == nil);
