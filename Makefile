@@ -21,13 +21,7 @@ endif
 LIBRARY_NAME += libprefs
 libprefs_FILES += prefs.xm
 libprefs_FRAMEWORKS += UIKit
-
-ifeq ($(SIMULATOR),1)
-libprefs_LDFLAGS += -Wl,-U,_MSHookMessageEx
-else
-libprefs_LIBRARIES += substrate
-endif
-
+libprefs_FRAMEWORKS += CydiaSubstrate
 libprefs_PRIVATE_FRAMEWORKS += Preferences
 libprefs_CFLAGS += -I.
 
