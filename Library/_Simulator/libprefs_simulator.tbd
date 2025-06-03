@@ -1,0 +1,12 @@
+---
+archs:                 [ x86_64, arm64 ]
+platform:              ios
+install-name:          '@rpath/libprefs.dylib'
+current-version:       2.2.3
+compatibility-version: 2.2
+objc-constraint:       retain_release
+exports:
+  - archs:              [ x86_64, arm64 ]
+    symbols:            [ _PLFilterKey ]
+    objc-classes:       [ _PLCustomListController, _PLFailedBundleListController, _PLLocalizedListController ]
+...

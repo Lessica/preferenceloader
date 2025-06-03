@@ -2,7 +2,7 @@
 
 ifeq ($(SIMULATOR),1)
 TARGET := simulator:clang:latest:14.0
-ARCHS = arm64
+ARCHS = arm64 x86_64
 else
 TARGET := iphone:clang:14.5:14.0
 ARCHS = arm64e
@@ -21,15 +21,16 @@ endif
 LIBRARY_NAME += libprefs
 libprefs_FILES += prefs.xm
 libprefs_FRAMEWORKS += UIKit
-libprefs_FRAMEWORKS += CydiaSubstrate
 libprefs_PRIVATE_FRAMEWORKS += Preferences
 libprefs_CFLAGS += -I.
 
 ifeq ($(SIMULATOR),1)
 libprefs_CFLAGS += -DSIMULATOR=1
 libprefs_CFLAGS += -DROOTLESS=1
+libprefs_FRAMEWORKS += CydiaSubstrateSimulator
 else
 libprefs_CFLAGS += -DROOTLESS=0
+libprefs_FRAMEWORKS += CydiaSubstrate
 endif
 
 ifeq ($(SIMULATOR),1)
@@ -49,20 +50,22 @@ TWEAK_NAME += PreferenceLoader
 PreferenceLoader_FILES += Tweak.xm
 PreferenceLoader_FRAMEWORKS += UIKit
 PreferenceLoader_PRIVATE_FRAMEWORKS += Preferences
-PreferenceLoader_LIBRARIES += prefs
 PreferenceLoader_CFLAGS += -I.
 
 ifeq ($(SIMULATOR),1)
 PreferenceLoader_CFLAGS += -DSIMULATOR=1
 PreferenceLoader_CFLAGS += -DROOTLESS=1
+PreferenceLoader_LIBRARIES += prefs_simulator
 else
 PreferenceLoader_CFLAGS += -DROOTLESS=0
+PreferenceLoader_LIBRARIES += prefs
 endif
 
 PreferenceLoader_LDFLAGS += -L$(THEOS_OBJ_DIR)
 
 ifeq ($(SIMULATOR),1)
 PreferenceLoader_LDFLAGS += -FLibrary/_Simulator
+PreferenceLoader_LDFLAGS += -LLibrary/_Simulator
 PreferenceLoader_LDFLAGS += -rpath /opt/simject
 else
 PreferenceLoader_LDFLAGS += -rpath /var/jb/usr/lib -rpath /usr/lib
