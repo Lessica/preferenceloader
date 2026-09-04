@@ -66,4 +66,4 @@ after-stage::
 # 	sudo chown -R root:admin $(THEOS_STAGING_DIR)/Library $(THEOS_STAGING_DIR)/usr
 
 after-install::
-	install.exec "killall -9 Preferences"
+	install.exec "killall -9 Preferences || true"
