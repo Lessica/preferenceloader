@@ -1,6 +1,6 @@
 # DON'T USE THIS MAKEFILE! IT IS NOT INTENDED FOR UPSTREAM THEOS
 
-TARGET := iphone:clang:16.2:15.0
+TARGET := iphone:clang:16.5:15.0
 ARCHS = arm64 arm64e
 
 export THEOS_USE_NEW_ABI=1
