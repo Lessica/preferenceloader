@@ -22,7 +22,8 @@ libprefs_FILES = prefs.xm
 libprefs_FRAMEWORKS = UIKit
 libprefs_LIBRARIES = substrate
 libprefs_PRIVATE_FRAMEWORKS = Preferences
-libprefs_CFLAGS = -I.
+# RootHide also needs the rootless hook exclusions.
+libprefs_CFLAGS = -I. -DROOTLESS=$(if $(filter 1,$(ROOTLESS) $(ROOTHIDE)),1,0)
 libprefs_COMPATIBILITY_VERSION = 2.2.0
 libprefs_LIBRARY_VERSION = $(shell echo "$(THEOS_PACKAGE_BASE_VERSION)" | cut -d'~' -f1)
 libprefs_LDFLAGS  = -compatibility_version $($(THEOS_CURRENT_INSTANCE)_COMPATIBILITY_VERSION)

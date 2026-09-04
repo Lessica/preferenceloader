@@ -59,11 +59,19 @@ static NSInteger PSSpecifierSort(PSSpecifier *a1, PSSpecifier *a2, void *context
 		%orig;
 		[_loadedSpecifiers release];
 		_loadedSpecifiers = [[NSMutableArray alloc] init];
+		#if SIMULATOR
+		NSArray *subpaths = [[NSFileManager defaultManager] subpathsOfDirectoryAtPath:@"/opt/simject/PreferenceLoader/Preferences" error:NULL];
+		#else
 		NSArray *subpaths = [[NSFileManager defaultManager] subpathsOfDirectoryAtPath:jbroot(@"/Library/PreferenceLoader/Preferences") error:NULL];
+		#endif
 		for(NSString *item in subpaths) {
 			if(![[item pathExtension] isEqualToString:@"plist"]) continue;
 			PLLog(@"processing %@", item);
+			#if SIMULATOR
+			NSString *fullPath = [NSString stringWithFormat:@"/opt/simject/PreferenceLoader/Preferences/%@", item];
+			#else
 			NSString *fullPath = [NSString stringWithFormat:jbroot(@"/Library/PreferenceLoader/Preferences/%@"), item];
+			#endif
 			NSDictionary *plPlist = [NSDictionary dictionaryWithContentsOfFile:fullPath];
 			if(![PSSpecifier environmentPassesPreferenceLoaderFilter:[plPlist objectForKey:@"filter"] ?: [plPlist objectForKey:PLFilterKey]]) continue;
 
@@ -94,6 +102,12 @@ static NSInteger PSSpecifierSort(PSSpecifier *a1, PSSpecifier *a2, void *context
 			PSSpecifier *groupSpecifier = [PSSpecifier groupSpecifierWithName:_Firmware_lt_60 ? @"Extensions" : nil];
 			[_loadedSpecifiers insertObject:groupSpecifier atIndex:0];
 			NSMutableArray *_specifiers = MSHookIvar<NSMutableArray *>(self, "_specifiers");
+			PLLog(@"_specifiers = %@", _specifiers);
+			// Log type
+			PLLog(@"_specifiers type = %s", class_getName([_specifiers class]));
+			if (@available(iOS 18.0, *)) {
+				_specifiers = [_specifiers mutableCopy];
+			}
 			NSInteger group, row;
 			NSInteger firstindex;
 			if ([self getGroup:&group row:&row ofSpecifierID:_Firmware_lt_60 ? @"General" : @"TWITTER"]) {
@@ -105,6 +119,9 @@ static NSInteger PSSpecifierSort(PSSpecifier *a1, PSSpecifier *a2, void *context
 			}
 			NSIndexSet *indices = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(firstindex, [_loadedSpecifiers count])];
 			[_specifiers insertObjects:_loadedSpecifiers atIndexes:indices];
+			if (@available(iOS 18.0, *)) {
+				MSHookIvar<id>(self, "_specifiers") = _specifiers;
+			}
 			PLLog(@"getting group index");
 			NSUInteger groupIndex = 0;
 			for(PSSpecifier *spec in _specifiers) {
@@ -125,6 +142,10 @@ static NSInteger PSSpecifierSort(PSSpecifier *a1, PSSpecifier *a2, void *context
 	if (targetRootClass == Nil) {
 		targetRootClass = objc_getClass("PrefsListController");
 	}
+	if (targetRootClass == Nil) {
+		targetRootClass = objc_getClass("PSGGeneralController");
+	}
+	PLLog(@"targetRootClass = %s", class_getName(targetRootClass));
 	%init(PrefsListController = targetRootClass);
 
 	_Firmware_lt_60 = kCFCoreFoundationVersionNumber < 793.00;

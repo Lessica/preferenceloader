@@ -343,8 +343,19 @@ static void pl_lazyLoadBundleCore(id self, SEL _cmd, PSSpecifier *specifier, voi
 	}
 	return [result autorelease];
 }
+%end
+
+%group Rootful
+%hook PSListController
+
+// This hook does not seem to be needed on modern iOS, and actually breaks some things
+// (Safari settings after entering a subpane, blank titles on Phone > Mute Unknown Calls
+// and Phone > Call Blocking and Identification).
+// However, I'm not sure what iOS versions need it (and we want to still support rootful),
+// so I'm leaving it here but gated.
 
 - (NSArray *)loadSpecifiersFromPlistName:(NSString *)plistName target:(id)target {
+	PLLog(@"Loading specifiers from plist %@.", plistName);
 	NSArray *result = %orig();
 	if([result count] > 0)
 		return result;
@@ -355,20 +366,16 @@ static void pl_lazyLoadBundleCore(id self, SEL _cmd, PSSpecifier *specifier, voi
 
 	PLLog(@"Loading specifiers from PSListController's specifier's properties.");
 	NSMutableArray *&bundleControllers = MSHookIvar<NSMutableArray *>(self, "_bundleControllers");
-	
 	// This code fixes the problem that the Safari website setting return crashes after entering the setting item.
- 	if(!bundleControllers){return result;}
-	
+	if(!bundleControllers) return result;
+	PLLog(@"bundleControllers is %p.", bundleControllers);
 	NSString *title = nil;
 	NSString *specifierID = nil;
 	result = SpecifiersFromPlist(properties, [self specifier], target, plistName, [self bundle], &title, &specifierID, self, &bundleControllers);
 
-	//if(title)
-	//	[self setTitle:title];
-
-	// Fix the blank titles of the phone setting items [Mute Unknown Calls] and [Call Blocking and Identification] 
- 	if(title)
- 		[self setTitle:self.specifier.name];
+	// Fix the blank titles of the phone setting items [Mute Unknown Calls] and [Call Blocking and Identification]
+	if(title)
+		[self setTitle:self.specifier.name];
 
 	if(specifierID)
 		[self setSpecifierID:specifierID];
@@ -376,12 +383,17 @@ static void pl_lazyLoadBundleCore(id self, SEL _cmd, PSSpecifier *specifier, voi
 	return result;
 }
 %end
+%end
 
 %hook NSBundle
 + (NSBundle *)bundleWithPath:(NSString *)path {
 	NSString *newPath = nil;
 	// This path shouldn't be used, but...
+	#if SIMULATOR
+	NSRange sysRange = [path rangeOfString:@"/opt/simject/PreferenceBundles" options:0];
+	#else
 	NSRange sysRange = [path rangeOfString:jbroot(@"/System/Library/PreferenceBundles") options:0];
+	#endif
 	if(sysRange.location != NSNotFound) {
 		newPath = [path stringByReplacingCharactersInRange:sysRange withString:jbroot(@"/Library/PreferenceBundles")];
 	}
@@ -408,12 +420,20 @@ static void pl_lazyLoadBundleCore(id self, SEL _cmd, PSSpecifier *specifier, voi
 	if(isBundle) {
 		// Second Try (bundlePath key failed)
 		if(![[NSFileManager defaultManager] fileExistsAtPath:bundlePath])
+			#if SIMULATOR
+			bundlePath = [NSString stringWithFormat:@"/opt/simject/PreferenceBundles/%@.bundle", bundleName];
+			#else
 			bundlePath = [NSString stringWithFormat:jbroot(@"/Library/PreferenceBundles/%@.bundle"), bundleName];
+			#endif
 
 		// Third Try (/Library failed)
 		// This path shouldn't be used, but...
 		if(![[NSFileManager defaultManager] fileExistsAtPath:bundlePath])
+			#if SIMULATOR
+			bundlePath = [NSString stringWithFormat:@"/opt/simject/PreferenceBundles/%@.bundle", bundleName];
+			#else
 			bundlePath = [NSString stringWithFormat:jbroot(@"/System/Library/PreferenceBundles/%@.bundle"), bundleName];
+			#endif
 
 		// Really? (/System/Library failed...)
 		if(![[NSFileManager defaultManager] fileExistsAtPath:bundlePath]) {
@@ -466,6 +486,7 @@ static void pl_lazyLoadBundleCore(id self, SEL _cmd, PSSpecifier *specifier, voi
 @end
 
 %ctor {
+	PLLog(@"libprefs loaded!");
 	_Firmware_lt_60 = kCFCoreFoundationVersionNumber < 793.00;
 	%init;
 
@@ -473,6 +494,10 @@ static void pl_lazyLoadBundleCore(id self, SEL _cmd, PSSpecifier *specifier, voi
 		%init(Firmware_lt_60);
 	} else {
 		%init(Firmware_ge_60);
+	}
+
+	if (!ROOTLESS) {
+		%init(Rootful);
 	}
 
 	void *preferencesHandle = dlopen("/System/Library/PrivateFrameworks/Preferences.framework/Preferences", RTLD_LAZY | RTLD_NOLOAD);

@@ -1,6 +1,6 @@
 Package: preferenceloader
 Description: load preferences in style
-Version: 2.2.6
+Version: 2.2.7
 Maintainer: ProcursusTeam <support@procurs.us>
 Author: Dhinak G <dhinak@dhinak.net>
 Architecture: iphoneos-arm
